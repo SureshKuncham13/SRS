@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="D:/SRS/SRS/SRS.API/SRS.API.csproj" />
+  <Project Path="D:/SRS/SRS/SRS.Application/SRS.Application.csproj" />
+  <Project Path="D:/SRS/SRS/SRS.Domain/SRS.Domain.csproj" />
+  <Project Path="D:/SRS/SRS/SRS.Infrastructure/SRS.Infrastructure.csproj" />
+</Solution>

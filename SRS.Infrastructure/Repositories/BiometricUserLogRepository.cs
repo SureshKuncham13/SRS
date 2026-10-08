@@ -23,21 +23,17 @@ namespace SRS.Infrastructure.Repositories
             var connection = _srsDbContext.Database.GetDbConnection();
 
             if (connection.State != ConnectionState.Open)
+            {
                 await connection.OpenAsync(cancellationToken);
+            }
 
             await using var command = connection.CreateCommand();
 
-            command.CommandText = "dbo.SP_Insert_Biometric_User_Log";
+            command.CommandText = "dbo.Insert_Biometric_User_Log";
             command.CommandType = CommandType.StoredProcedure;
 
             command.Parameters.Add(
-                new SqlParameter("@MachineNumber", SqlDbType.Int)
-                {
-                    Value = model.MachineNumber
-                });
-
-            command.Parameters.Add(
-                new SqlParameter("@IndRegID", SqlDbType.BigInt)
+                new SqlParameter("@IndRegID", SqlDbType.NVarChar)
                 {
                     Value = model.IndRegID
                 });
@@ -49,19 +45,13 @@ namespace SRS.Infrastructure.Repositories
                 });
 
             command.Parameters.Add(
-                new SqlParameter("@DateOnlyRecord", SqlDbType.Date)
+                new SqlParameter("@SerialNumber", SqlDbType.NVarChar)
                 {
-                    Value = model.DateOnlyRecord.Date
+                    Value = model.SerialNumber
                 });
 
             command.Parameters.Add(
-                new SqlParameter("@TimeOnlyRecord", SqlDbType.DateTime)
-                {
-                    Value = model.TimeOnlyRecord
-                });
-
-            command.Parameters.Add(
-                new SqlParameter("@dwInOutMode", SqlDbType.Int)
+                new SqlParameter("@dwInOutMode", SqlDbType.NVarChar)
                 {
                     Value = model.dwInOutMode
                 });
@@ -80,21 +70,17 @@ namespace SRS.Infrastructure.Repositories
             var connection = _devDbContext.Database.GetDbConnection();
 
             if (connection.State != ConnectionState.Open)
+            {
                 await connection.OpenAsync(cancellationToken);
+            }
 
             await using var command = connection.CreateCommand();
 
-            command.CommandText = "dbo.SP_Insert_Biometric_User_Log";
+            command.CommandText = "dbo.Insert_Biometric_User_Log";
             command.CommandType = CommandType.StoredProcedure;
 
             command.Parameters.Add(
-                new SqlParameter("@MachineNumber", SqlDbType.Int)
-                {
-                    Value = model.MachineNumber
-                });
-
-            command.Parameters.Add(
-                new SqlParameter("@IndRegID", SqlDbType.BigInt)
+                new SqlParameter("@IndRegID", SqlDbType.NVarChar)
                 {
                     Value = model.IndRegID
                 });
@@ -106,24 +92,19 @@ namespace SRS.Infrastructure.Repositories
                 });
 
             command.Parameters.Add(
-                new SqlParameter("@DateOnlyRecord", SqlDbType.Date)
+                new SqlParameter("@SerialNumber", SqlDbType.NVarChar)
                 {
-                    Value = model.DateOnlyRecord.Date
+                    Value = model.SerialNumber
                 });
 
             command.Parameters.Add(
-                new SqlParameter("@TimeOnlyRecord", SqlDbType.DateTime)
-                {
-                    Value = model.TimeOnlyRecord
-                });
-
-            command.Parameters.Add(
-                new SqlParameter("@dwInOutMode", SqlDbType.Int)
+                new SqlParameter("@dwInOutMode", SqlDbType.NVarChar)
                 {
                     Value = model.dwInOutMode
                 });
 
-            command.Parameters.Add(new SqlParameter("@bio_hide", SqlDbType.Bit)
+            command.Parameters.Add(
+                new SqlParameter("@bio_hide", SqlDbType.Bit)
                 {
                     Value = model.bio_hide
                 });

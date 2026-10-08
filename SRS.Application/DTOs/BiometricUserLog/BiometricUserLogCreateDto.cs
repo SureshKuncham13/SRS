@@ -2,12 +2,10 @@
 {
     public class BiometricUserLogCreateDto
     {
-        public int MachineNumber { get; set; }
-        public long IndRegID { get; set; }
+        public string IndRegID { get; set; } = string.Empty;
         public DateTime DateTimeRecord { get; set; }
-        public DateTime DateOnlyRecord { get; set; }
-        public DateTime TimeOnlyRecord { get; set; }
-        public int dwInOutMode { get; set; }
+        public string SerialNumber { get; set; } = string.Empty;
+        public string dwInOutMode { get; set; } = string.Empty;
         public bool bio_hide { get; set; }
     }
 }

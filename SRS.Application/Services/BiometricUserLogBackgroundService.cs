@@ -2,49 +2,63 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SRS.Application.Interfaces.Repository;
-using SRS.Application.Interfaces.Service;
 
-namespace SRS.Application.Services
+namespace SRS.Application.Services;
+
+public sealed class BiometricUserLogBackgroundService : BackgroundService
 {
-    public class BiometricUserLogBackgroundService : BackgroundService
+    private static readonly TimeSpan SyncInterval = TimeSpan.FromMinutes(2);
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<BiometricUserLogBackgroundService> _logger;
+
+    public BiometricUserLogBackgroundService(IServiceScopeFactory scopeFactory, ILogger<BiometricUserLogBackgroundService> logger)
     {
-        private readonly IBiometricUserLogQueue _queue;
-        private readonly IServiceScopeFactory _scopeFactory;
-        private readonly ILogger<BiometricUserLogBackgroundService> _logger;
+        _scopeFactory = scopeFactory;
+        _logger = logger;
+    }
 
-        public BiometricUserLogBackgroundService(IBiometricUserLogQueue queue, IServiceScopeFactory scopeFactory, ILogger<BiometricUserLogBackgroundService> logger)
-        {
-            _queue = queue;
-            _scopeFactory = scopeFactory;
-            _logger = logger;
-        }
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Biometric synchronization background service started. Interval: {Interval}.", SyncInterval);
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        while (!stoppingToken.IsCancellationRequested)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            try
             {
-                try
+                using var scope = _scopeFactory.CreateScope();
+                var repository = scope.ServiceProvider.GetRequiredService<IBiometricUserLogSyncRepository>();
+
+                _logger.LogInformation("Starting dbo.Sync_Biometric_User_Logs3 at {Time}.", DateTimeOffset.Now);
+
+                var result = await repository.ExecuteSyncProcedureAsync(stoppingToken);
+
+                if (result is null)
                 {
-                    var model = await _queue.DequeueAsync(stoppingToken);
-
-                    // Wait exactly 2 minutes
-                    await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
-
-                    using var scope = _scopeFactory.CreateScope();
-                    var repository = scope.ServiceProvider.GetRequiredService<IBiometricUserLogRepository>();
-                    await repository.InsertIntoDevAsync(model, stoppingToken);
-
-                    _logger.LogInformation("Biometric record {IndRegID} inserted", model.IndRegID);
+                    _logger.LogWarning("The synchronization procedure completed without returning its summary row.");
                 }
-                catch (OperationCanceledException)
+                else
                 {
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error while inserting biometric log");
+                    _logger.LogInformation("Biometric synchronization completed. Inserted={Inserted}, Updated={Updated}, Source={Source}, Destination={Destination}.", result.InsertedRecords, result.UpdatedRecords, result.SourceRecords, result.DestinationRecords);
                 }
             }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Biometric synchronization failed. It will retry after {Interval}.", SyncInterval);
+            }
+            try
+            {
+                await Task.Delay(SyncInterval, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
         }
+
+        _logger.LogInformation("Biometric synchronization background service stopped.");
     }
 }

@@ -17,4 +17,8 @@
     <ProjectReference Include="..\SRS.Domain\SRS.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Interfaces\Service\" />
+  </ItemGroup>
+
 </Project>

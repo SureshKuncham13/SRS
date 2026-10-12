@@ -1,115 +1,47 @@
-﻿using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
-using SRS.Application.DTOs.BiometricUserLog;
+﻿using System.Data;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using SRS.Application.Interfaces.Repository;
-using SRS.Infrastructure.Data;
-using System.Data;
+using SRS.Application.Models;
 
-namespace SRS.Infrastructure.Repositories
+namespace SRS.Infrastructure.Repositories;
+
+public sealed class BiometricUserLogSyncRepository : IBiometricUserLogSyncRepository
 {
-    public class BiometricUserLogRepository : IBiometricUserLogRepository
+    private readonly string _connectionString;
+
+    public BiometricUserLogSyncRepository(IConfiguration configuration)
     {
-        private readonly SrsDbContext _srsDbContext;
-        private readonly DevDbContext _devDbContext;
+        _connectionString = configuration.GetConnectionString("BiometricSource")?? throw new InvalidOperationException("Connection string 'BiometricSource' is missing.");
 
-        public BiometricUserLogRepository(SrsDbContext srsDbContext, DevDbContext devDbContext)
+        if (string.IsNullOrWhiteSpace(_connectionString))
         {
-            _srsDbContext = srsDbContext;
-            _devDbContext = devDbContext;
+            throw new InvalidOperationException("Connection string 'BiometricSource' is empty.");
+        }
+    }
+
+    public async Task<BiometricSyncResult?> ExecuteSyncProcedureAsync(CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = new SqlCommand("dbo.Sync_Biometric_User_Logs3", connection)
+        {
+            CommandType = CommandType.StoredProcedure,
+            CommandTimeout = 120
+        };
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        if (!await reader.ReadAsync(cancellationToken))
+        {
+            return null;
         }
 
-        public async Task InsertIntoSrsAsync(BiometricUserLogCreateDto model, CancellationToken cancellationToken = default)
-        {
-            var connection = _srsDbContext.Database.GetDbConnection();
-
-            if (connection.State != ConnectionState.Open)
-            {
-                await connection.OpenAsync(cancellationToken);
-            }
-
-            await using var command = connection.CreateCommand();
-
-            command.CommandText = "dbo.Insert_Biometric_User_Log";
-            command.CommandType = CommandType.StoredProcedure;
-
-            command.Parameters.Add(
-                new SqlParameter("@IndRegID", SqlDbType.NVarChar)
-                {
-                    Value = model.IndRegID
-                });
-
-            command.Parameters.Add(
-                new SqlParameter("@DateTimeRecord", SqlDbType.DateTime)
-                {
-                    Value = model.DateTimeRecord
-                });
-
-            command.Parameters.Add(
-                new SqlParameter("@SerialNumber", SqlDbType.NVarChar)
-                {
-                    Value = model.SerialNumber
-                });
-
-            command.Parameters.Add(
-                new SqlParameter("@dwInOutMode", SqlDbType.NVarChar)
-                {
-                    Value = model.dwInOutMode
-                });
-
-            command.Parameters.Add(
-                new SqlParameter("@bio_hide", SqlDbType.Bit)
-                {
-                    Value = model.bio_hide
-                });
-
-            await command.ExecuteNonQueryAsync(cancellationToken);
-        }
-
-        public async Task InsertIntoDevAsync(BiometricUserLogCreateDto model, CancellationToken cancellationToken = default)
-        {
-            var connection = _devDbContext.Database.GetDbConnection();
-
-            if (connection.State != ConnectionState.Open)
-            {
-                await connection.OpenAsync(cancellationToken);
-            }
-
-            await using var command = connection.CreateCommand();
-
-            command.CommandText = "dbo.Insert_Biometric_User_Log";
-            command.CommandType = CommandType.StoredProcedure;
-
-            command.Parameters.Add(
-                new SqlParameter("@IndRegID", SqlDbType.NVarChar)
-                {
-                    Value = model.IndRegID
-                });
-
-            command.Parameters.Add(
-                new SqlParameter("@DateTimeRecord", SqlDbType.DateTime)
-                {
-                    Value = model.DateTimeRecord
-                });
-
-            command.Parameters.Add(
-                new SqlParameter("@SerialNumber", SqlDbType.NVarChar)
-                {
-                    Value = model.SerialNumber
-                });
-
-            command.Parameters.Add(
-                new SqlParameter("@dwInOutMode", SqlDbType.NVarChar)
-                {
-                    Value = model.dwInOutMode
-                });
-
-            command.Parameters.Add(
-                new SqlParameter("@bio_hide", SqlDbType.Bit)
-                {
-                    Value = model.bio_hide
-                });
-
-            await command.ExecuteNonQueryAsync(cancellationToken);
-        }
+        return new BiometricSyncResult(
+            InsertedRecords: Convert.ToInt32(reader["InsertedRecords"]),
+            UpdatedRecords: Convert.ToInt32(reader["UpdatedRecords"]),
+            SourceRecords: Convert.ToInt64(reader["SourceRecords"]),
+            DestinationRecords: Convert.ToInt64(reader["DestinationRecords"]));
     }
 }

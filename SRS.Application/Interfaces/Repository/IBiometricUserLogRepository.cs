@@ -1,10 +1,7 @@
-﻿using SRS.Application.DTOs.BiometricUserLog;
+﻿using SRS.Application.Models;
+namespace SRS.Application.Interfaces.Repository;
 
-namespace SRS.Application.Interfaces.Repository
+public interface IBiometricUserLogSyncRepository
 {
-    public interface IBiometricUserLogRepository
-    {
-        Task InsertIntoSrsAsync(BiometricUserLogCreateDto model, CancellationToken cancellationToken = default);
-        Task InsertIntoDevAsync(BiometricUserLogCreateDto model, CancellationToken cancellationToken = default);
-    }
+    Task<BiometricSyncResult?> ExecuteSyncProcedureAsync(CancellationToken cancellationToken = default);
 }

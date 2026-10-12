@@ -20,4 +20,8 @@
     <ProjectReference Include="..\SRS.Domain\SRS.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Data\" />
+  </ItemGroup>
+
 </Project>
